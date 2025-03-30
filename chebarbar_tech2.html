@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHEBARBAR TECH POS System</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: pink;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, button {
+            margin: 5px;
+            padding: 10px;
+        }
+        #receipt {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px dashed #000;
+            background: #fff;
+            text-align: left;
+            width: 10.5cm;
+            height: 14.8cm;
+            overflow: hidden;
+        }
+        #receipt h2 {
+            color: pink;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #ddd;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #receipt, #receipt * {
+                visibility: visible;
+            }
+            #receipt {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>CHEBARBAR TECH POS SYSTEM</h1>
+    
+    <div class="container" id="login-container">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div class="container" id="pos-container" style="display:none;">
+        <h2>Sale Entry</h2>
+        <button onclick="logout()" style="float:right;">Logout</button>
+        <input type="text" id="item" placeholder="Item Name">
+        <input type="number" id="price" placeholder="Price">
+        <input type="number" id="quantity" placeholder="Quantity">
+        <input type="number" id="discount" placeholder="Discount (%)">
+        <button onclick="addItem()">Add Item</button>
+        <input type="text" id="search" placeholder="Search Item" onkeyup="searchItem()">
+        <button onclick="saveData()">Save Data</button>
+        <ul id="searchResults"></ul>
+        <div id="receipt">
+            <svg id="barcode"></svg>
+        </div>
+        <button onclick="printReceipt()">Print Receipt</button>
+        <button onclick="clearReceipt()">Clear Receipt</button>
+    </div>
+    
+    <script>
+        let users = {
+            CHEBARBAR: "8006"
+        };
+
+        let receiptNumber = 1000;
+        let items = [];
+
+        function login() {
+            let username = document.getElementById('username').value;
+            let password = document.getElementById('password').value;
+            
+            if (users[username] && users[username] === password) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('pos-container').style.display = 'block';
+            } else {
+                alert('Invalid login credentials');
+            }
+        }
+
+        function logout() {
+            document.getElementById('login-container').style.display = 'block';
+            document.getElementById('pos-container').style.display = 'none';
+        }
+
+        function addItem() {
+            let item = document.getElementById('item').value;
+            let price = parseFloat(document.getElementById('price').value);
+            let quantity = parseInt(document.getElementById('quantity').value) || 1;
+            let discount = parseFloat(document.getElementById('discount').value) || 0;
+
+            if(item && price) {
+                let discountedPrice = price - (price * (discount / 100));
+                let totalPrice = discountedPrice * quantity;
+                items.push({ item, price: totalPrice, quantity, discount });
+                updateReceipt();
+            }
+        }
+
+        function updateReceipt() {
+            let receiptDiv = document.getElementById('receipt');
+            let date = new Date().toLocaleString();
+            receiptDiv.innerHTML = `<h2>CHEBARBAR TECH</h2>`;
+            receiptDiv.innerHTML += `<h3>Receipt #${receiptNumber}</h3>`;
+            receiptDiv.innerHTML += `<p>Date: ${date}</p>`;
+            receiptDiv.innerHTML += '<svg id="barcode"></svg>';
+            
+            JsBarcode("#barcode", receiptNumber.toString(), {
+                format: "CODE128",
+                displayValue: true
+            });
+            
+            let tableHTML = `<table id="receipt-table">
+                <tr>
+                    <th>#</th>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Discount (%)</th>
+                    <th>Price (KES)</th>
+                </tr>`;
+            
+            let total = 0;
+            items.forEach((entry, index) => {
+                tableHTML += `<tr>
+                    <td>${index + 1}</td>
+                    <td>${entry.item}</td>
+                    <td>${entry.quantity}</td>
+                    <td>${entry.discount}%</td>
+                    <td>${entry.price.toFixed(2)}</td>
+                </tr>`;
+                total += entry.price;
+            });
+            
+            tableHTML += `</table>`;
+            receiptDiv.innerHTML += tableHTML;
+            receiptDiv.innerHTML += `<h3>Total: KES ${total.toFixed(2)}</h3>`;
+        }
+
+        function printReceipt() {
+            window.print();
+        }
+
+        function clearReceipt() {
+            document.getElementById('receipt').innerHTML = "";
+            items = [];
+            receiptNumber++;
+        }
+    </script>
+</body>
+</html>
